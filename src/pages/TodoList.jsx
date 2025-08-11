@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import "./todo.css";
-import useTodos from "../context/useTodos.js";
-
+import { useDispatch, useSelector } from "react-redux";
+import { addTodo, deleteTodo, toggleTodo, editTodo } from "../store/store.js";
 
 function TodoItem({ item }) {
-  const { remove, toggle, edit } = useTodos();
+  const dispatch = useDispatch();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.text);
 
   const save = () => {
     const t = draft.trim();
-    if (t) edit(item.id, t);
+    if (t) dispatch(editTodo(item.id, t));
     setEditing(false);
   };
 
@@ -41,9 +41,12 @@ function TodoItem({ item }) {
         ) : (
           <button className="btn edit" onClick={() => setEditing(true)} title="Edit">✎</button>
         )}
-
-        <button className="btn delete" onClick={() => remove(item.id)} title="Delete">🗑</button>
-        <button className="btn move" onClick={() => toggle(item.id)} title={item.status === "pending" ? "Mark Completed" : "Move Back"}>
+        <button className="btn delete" onClick={() => dispatch(deleteTodo(item.id))} title="Delete">🗑</button>
+        <button
+          className="btn move"
+          onClick={() => dispatch(toggleTodo(item.id))}
+          title={item.status === "pending" ? "Mark Completed" : "Move Back"}
+        >
           {item.status === "pending" ? "➡" : "⬅"}
         </button>
       </div>
@@ -51,16 +54,17 @@ function TodoItem({ item }) {
   );
 }
 
-
 export default function TodoList() {
-  const { todos, input, setInput, add } = useTodos();
+  const dispatch = useDispatch();
+  const items = useSelector((state) => state.items);
+  const [input, setInput] = useState("");
 
-  const pending = todos.filter((t) => t.status === "pending");
-  const completed = todos.filter((t) => t.status === "completed");
+  const pending = items.filter((t) => t.status === "pending");
+  const completed = items.filter((t) => t.status === "completed");
 
   const handleAdd = (e) => {
     e.preventDefault();
-    add(input);
+    dispatch(addTodo(input)); 
     setInput("");
   };
 
@@ -81,18 +85,14 @@ export default function TodoList() {
         <section className="col">
           <h2>Pending Tasks</h2>
           <ul className="list">
-            {pending.map((item) => (
-              <TodoItem key={item.id} item={item} />
-            ))}
+            {pending.map((item) => <TodoItem key={item.id} item={item} />)}
           </ul>
         </section>
 
         <section className="col">
           <h2>Completed Tasks</h2>
           <ul className="list">
-            {completed.map((item) => (
-              <TodoItem key={item.id} item={item} />
-            ))}
+            {completed.map((item) => <TodoItem key={item.id} item={item} />)}
           </ul>
         </section>
       </div>
