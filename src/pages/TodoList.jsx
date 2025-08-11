@@ -1,7 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./todo.css";
 import { useDispatch, useSelector } from "react-redux";
-import { addTodo, deleteTodo, toggleTodo, editTodo } from "../store/store.js";
+import {
+  addTodo,
+  deleteTodo,
+  toggleTodo,
+  editTodo,
+  fetchTodos,
+  clearError,
+  selectTodos,
+  selectStatus,
+  selectError,
+} from "../store/store.js";
 
 function TodoItem({ item }) {
   const dispatch = useDispatch();
@@ -10,7 +20,7 @@ function TodoItem({ item }) {
 
   const save = () => {
     const t = draft.trim();
-    if (t) dispatch(editTodo(item.id, t));
+    if (t) dispatch(editTodo({ id: item.id, text: t }));
     setEditing(false);
   };
 
@@ -56,21 +66,46 @@ function TodoItem({ item }) {
 
 export default function TodoList() {
   const dispatch = useDispatch();
-  const items = useSelector((state) => state.items);
+  const items = useSelector(selectTodos);
+  const status = useSelector(selectStatus);
+  const error = useSelector(selectError);
+
   const [input, setInput] = useState("");
+
+  // Load initial data once
+  useEffect(() => {
+    if (status === "idle") dispatch(fetchTodos());
+  }, [status, dispatch]);
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    dispatch(addTodo(input));
+    setInput("");
+  };
 
   const pending = items.filter((t) => t.status === "pending");
   const completed = items.filter((t) => t.status === "completed");
 
-  const handleAdd = (e) => {
-    e.preventDefault();
-    dispatch(addTodo(input)); 
-    setInput("");
-  };
-
   return (
     <div className="todo-page">
       <h1>Todolist</h1>
+
+      {status === "loading" && <p>Loading todos…</p>}
+      {status === "failed" && (
+        <div style={{ color: "#b00020", marginBottom: 12 }}>
+          <strong>Error:</strong> {error}
+          <button
+            style={{ marginLeft: 10 }}
+            className="btn"
+            onClick={() => {
+              dispatch(clearError());
+              dispatch(fetchTodos());
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <form className="add-bar" onSubmit={handleAdd}>
         <input
@@ -85,14 +120,18 @@ export default function TodoList() {
         <section className="col">
           <h2>Pending Tasks</h2>
           <ul className="list">
-            {pending.map((item) => <TodoItem key={item.id} item={item} />)}
+            {pending.map((item) => (
+              <TodoItem key={item.id} item={item} />
+            ))}
           </ul>
         </section>
 
         <section className="col">
           <h2>Completed Tasks</h2>
           <ul className="list">
-            {completed.map((item) => <TodoItem key={item.id} item={item} />)}
+            {completed.map((item) => (
+              <TodoItem key={item.id} item={item} />
+            ))}
           </ul>
         </section>
       </div>
